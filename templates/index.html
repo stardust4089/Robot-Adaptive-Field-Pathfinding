@@ -12,6 +12,11 @@
             overflow: hidden; /* Prevent content from overflowing */
         }
 
+        .hidden {
+            display: none !important;
+        }
+
+
         .grid {
             position: absolute; /* Set the grid as absolute */
             top: 0;
@@ -79,6 +84,12 @@
     <script>
         $(document).ready(function() {
 
+
+            // Event listener for Toggle Debugging button click
+            $("#toggleObsBtn").click(function() {
+                $("#obs").toggleClass("hidden");
+            });
+
             // Function to update the width and height of the grid container
             function updateGridSize() {
                 var windowWidth = $(window).width();
@@ -118,7 +129,7 @@
             highlightObstacles();
 
             // Add an interval to periodically update the highlighted obstacles
-            setInterval(highlightObstacles, 5);
+            //setInterval(highlightObstacles, 1000);
 
             var shapePoints = []; // Store the shape points
     
@@ -145,8 +156,15 @@
                         // Paint the square if it's different from the last square
                         var x = square[0];
                         var y = square[1];
-                        $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
+                        $(".square[data-x='" + x + "'][data-y='" + y + "']").toggleClass("obstacle");
+                        $.post("/add_point", {"x": x, "y": y}, function(data) {})
+                        .done(function() {
+                            console.log("Point added successfully.");
+                        }).fail(function() {
+                            console.error("Failed to add point.");
+                        });
                         lastSquare = square;
+                        highlightObstacles()
                     }
                 }
             }
@@ -191,15 +209,8 @@
                             console.error("Failed to construct shape.");
                         });
                     }
-                } else {
-                    $.post("/add_point", {"x": x, "y": y}, function(data) {
-                        square.toggleClass("obstacle");
-                    }).done(function() {
-                        console.log("Point added successfully.");
-                    }).fail(function() {
-                        console.error("Failed to add point.");
-                    });
-                }
+                } 
+                highlightObstacles()
             });
             // Download button click event handler
             $("#downloadBtn").click(function() {
@@ -236,7 +247,12 @@
                 <div class="sidebar py-4">
                     <button id="downloadBtn" class="btn btn-primary">Download Obstacles</button>
                     <button id="clearBtn" class="btn btn-danger mt-2">Clear Obstacles</button>
-                    <textarea id="obs">Obstacles:</textarea>
+                    <button id="toggleObsBtn" class="btn btn-secondary mt-2">Toggle Debugging</button>
+                    <a href="/runny_nose" download>Download Path</a>
+
+                    <b></b>
+                    <label for="obs">Debugging</label>
+                    <textarea name="obs" id="obs">Obstacles:</textarea>
                 </div>
             </div>
                 <div class="col-md-10">
