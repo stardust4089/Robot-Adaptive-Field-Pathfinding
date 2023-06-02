@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>Grid Construction</title>
+    <style>
+        .grid-container {
+            position: relative; /* Set the container as relative */
+            width: 1500;
+            height: 727;
+            margin: 20px; /* Add margins around the grid container */
+            overflow: hidden; /* Prevent content from overflowing */
+        }
+
+        .grid {
+            position: absolute; /* Set the grid as absolute */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: grid;
+            grid-template-columns: repeat(165, 1fr);
+            grid-template-rows: repeat(80, 1fr);
+            gap: 1px;
+            outline: 1px solid black;  /* Add outline to the grid */
+            box-sizing: border-box;  /* Include outline in grid dimensions */
+            background-color: transparent; /* Set background color to transparent */
+        }
+
+        .square {
+            outline-color: darkgrey;
+            box-sizing: border-box;  /* Include outline in square dimensions */
+            border-left: 1px solid black;
+            border-right: 1px solid black;
+            border-bottom: 1px solid black;
+            border-top: 1px solid black;
+
+        }
+
+        /* Add borders to show the outline of each square */
+        .square:nth-child(165n + 1) {
+            border-left: 1px solid black;
+        }
+
+        .square:nth-last-child(-n + 165) {
+            border-right: 1px solid black;
+        }
+
+        .square:nth-child(-n + 165) {
+            border-bottom: 1px solid black;
+        }
+
+        .square:nth-last-child(165n + 1) {
+            border-top: 1px solid black;
+        }
+
+        .square.clicked {
+            background-color: blue;
+        }
+
+        .square.obstacle {
+            background-color: red;
+        }
+
+        .background-image {
+            position: absolute; /* Set the background image as absolute */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("{{ url_for('static', filename='field23_1_1_1650x800.png') }}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.7; /* Adjust the opacity as needed */
+        }
+        /* Rest of your CSS styles */
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 100%;
+            background-color: #f1f1f1;
+            padding: 20px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Function to update the width and height of the grid container
+            function updateGridSize() {
+                var windowWidth = $(window).width();
+                var windowHeight = $(window).height();
+                $('.grid-container').css({
+                    width: windowWidth * 0.8 + 'px',
+                    height: windowHeight * 0.8 + 'px'
+                });
+            }
+
+            // Call the updateGridSize function on page load
+            updateGridSize();
+
+            // Call the updateGridSize function whenever the window is resized
+            $(window).resize(function() {
+                updateGridSize();
+            });
+
+
+            var shiftKeyPressed = false; // Track if Shift key is pressed
+
+            // Function to retrieve the obstacles array and highlight the corresponding squares
+            function highlightObstacles() {
+                if (shiftKeyPressed) return;
+                $.get("/get_obstacles", function(data) {
+                    var obstacles = data.obstacles;
+                    document.getElementById("obs").innerHTML = obstacles;
+                    obstacles.forEach(function(obstacle) {
+                        var x = obstacle[0];
+                        var y = obstacle[1];
+                        $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
+                    });
+                });
+            }
+
+            // Call the highlightObstacles() function to highlight the initial obstacles
+            highlightObstacles();
+
+            // Add an interval to periodically update the highlighted obstacles
+            setInterval(highlightObstacles, 5);
+
+            var shapePoints = []; // Store the shape points
+    
+            // Event listener for Shift key press/release
+            $(document).keydown(function(event) {
+                if (event.keyCode === 16) { // Shift key code
+                    shiftKeyPressed = true;
+                }
+            });
+    
+            $(document).keyup(function(event) {
+                if (event.keyCode === 16) { // Shift key code
+                    shiftKeyPressed = false;
+                }
+            });
+    
+            $(".square").click(function() {
+                var square = $(this);
+                var x = $(this).data("x");
+                var y = $(this).data("y");
+
+                if (shiftKeyPressed) {
+                    if (shapePoints.length < 4) {
+                        shapePoints.push([x, y]);
+                        $(this).addClass("clicked");
+                    } 
+                    if (shapePoints.length >= 4) {
+                        $.post("/construct_shape", {"shape_points": JSON.stringify(shapePoints)}, function(data) {
+                            $(".square").removeClass("clicked");
+                            shapePoints = []; // Clear the shape points
+                        }).done(function() {
+                            console.log("Shape construction successful.");
+                        }).fail(function() {
+                            console.error("Failed to construct shape.");
+                        });
+                    }
+                } else {
+                    $.post("/add_point", {"x": x, "y": y}, function(data) {
+                        square.toggleClass("obstacle");
+                    }).done(function() {
+                        console.log("Point added successfully.");
+                    }).fail(function() {
+                        console.error("Failed to add point.");
+                    });
+                }
+            });
+            // Download button click event handler
+            $("#downloadBtn").click(function() {
+                $.get("/get_obstacles", function(data) {
+                    var obstacles = data.obstacles;
+                    // Create a blob object from the obstacles array as JSON
+                    var jsonBlob = new Blob([JSON.stringify(obstacles)], {type: "application/json"});
+                    
+                    // Create a download URL for the blob
+                    var downloadUrl = URL.createObjectURL(jsonBlob);
+                    
+                    // Create a temporary anchor element to trigger the download
+                    var downloadLink = document.createElement("a");
+                    downloadLink.href = downloadUrl;
+                    downloadLink.download = "obstacles.json";
+                    
+                    // Simulate a click event on the anchor element to start the download
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    
+                    // Clean up
+                    document.body.removeChild(downloadLink);
+                    URL.revokeObjectURL(downloadUrl);
+                });
+            });
+        });
+    </script>
+    
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2">
+                <div class="sidebar py-4">
+                    <button id="downloadBtn" class="btn btn-primary">Download Obstacles</button>
+                    <button id="clearBtn" class="btn btn-danger mt-2">Clear Obstacles</button>
+                    <p id="obs">Obstacles:</p>
+                </div>
+            </div>
+                <div class="col-md-10">
+                    <div class="grid-container">
+                        <div class="background-image"></div>
+                        <div class="grid">
+                            {% for y in range(80, 0 , -1) %}
+                                {% for x in range(165) %}
+                                    <div class="square" data-x="{{ x }}" data-y="{{ y }}"></div>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    $(document).ready(function() {
+        // Function to clear obstacles and reset highlighting
+        function clearObstacles() {
+            $.post("/clear_obstacles", function() {
+                $(".square").removeClass("obstacle");
+                console.log("Obstacles cleared successfully.");
+            }).fail(function() {
+                console.error("Failed to clear obstacles.");
+            });
+        }
+
+        // Event listener for Clear Obstacles button click
+        $("#clearBtn").click(function() {
+            clearObstacles();
+        });
+    });
+</script>
+</html>

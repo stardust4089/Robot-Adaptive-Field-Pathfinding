@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grid</title>
+    <style>
+        .square {
+            width: {{ square_size }}px;
+            height: {{ square_size }}px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Grid</h1>
+    <div>
+        <form method="POST" action="/">
+            <label for="x">X:</label>
+            <input type="number" id="x" name="x" min="0" max="{{ grid_width - 1 }}" required>
+            <label for="y">Y:</label>
+            <input type="number" id="y" name="y" min="0" max="{{ grid_height - 1 }}" required>
+            <input type="submit" value="Add Point">
+            <input type="checkbox" id="shift" name="shift">
+            <label for="shift">Hold Shift</label>
+        </form>
+    </div>
+    <div style="position: relative; width: {{ grid_width * square_size }}px; height: {{ grid_height * square_size }}px;">
+        <img src="{{ background_photo }}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" alt="Background Image">
+        {% for x in range(grid_width) %}
+            {% for y in range(grid_height) %}
+                <div class="square" style="position: absolute; top: {{ y * square_size }}px; left: {{ x * square_size }}px; border: 1px solid gray;
+                {% if (x, y) in points %}
+                    background-color: {{ color_clicked }};
+                {% elif (x, y) in obstacles %}
+                    background-color: {{ color_obstacle }};
+                {% else %}
+                    background-color: {{ color_normal }};
+                {% endif %}
+                "></div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</body>
+</html>
