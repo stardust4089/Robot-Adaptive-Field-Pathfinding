@@ -2,7 +2,7 @@
 <html>
 <head>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <title>Grid Construction</title>
+    <title>Static Bounds</title>
     <style>
         .grid-container {
             position: relative; /* Set the container as relative */
@@ -21,8 +21,7 @@
             display: grid;
             grid-template-columns: repeat(165, 1fr);
             grid-template-rows: repeat(80, 1fr);
-            gap: 1px;
-            outline: 1px solid black;  /* Add outline to the grid */
+            gap: 0px;
             box-sizing: border-box;  /* Include outline in grid dimensions */
             background-color: transparent; /* Set background color to transparent */
         }
@@ -30,28 +29,19 @@
         .square {
             outline-color: darkgrey;
             box-sizing: border-box;  /* Include outline in square dimensions */
-            border-left: 1px solid black;
-            border-right: 1px solid black;
-            border-bottom: 1px solid black;
-            border-top: 1px solid black;
+            border-right: 0.25px solid black;
+            border-top: 0.25px solid black;
 
         }
 
         /* Add borders to show the outline of each square */
         .square:nth-child(165n + 1) {
-            border-left: 1px solid black;
+            border-left: 0.25px solid black;
         }
 
-        .square:nth-last-child(-n + 165) {
-            border-right: 1px solid black;
-        }
-
-        .square:nth-child(-n + 165) {
-            border-bottom: 1px solid black;
-        }
-
-        .square:nth-last-child(165n + 1) {
-            border-top: 1px solid black;
+        /* Add a bottom border to the very bottom squares */
+        .square:nth-last-child(-n+165) {
+            border-bottom: 0.25px solid black;
         }
 
         .square.clicked {
@@ -68,7 +58,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-image: url("{{ url_for('static', filename='field23_1_1_1650x800.png') }}");
+            background-image: url("{{ url_for('static', filename='field23.png') }}");
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
@@ -88,6 +78,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+
             // Function to update the width and height of the grid container
             function updateGridSize() {
                 var windowWidth = $(window).width();
@@ -218,7 +209,7 @@
                         <div class="grid">
                             {% for y in range(80, 0 , -1) %}
                                 {% for x in range(165) %}
-                                    <div class="square" data-x="{{ x }}" data-y="{{ y }}"></div>
+                                    <div class="square grid_item" data-x="{{ x }}" data-y="{{ y }}"></div>
                                 {% endfor %}
                             {% endfor %}
                         </div>
