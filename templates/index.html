@@ -134,7 +134,43 @@
                     shiftKeyPressed = false;
                 }
             });
-    
+            
+            var isMouseDown = false; // Track if the mouse button is pressed
+            var lastSquare = null; // Track the last square the mouse crossed
+
+            // Function to handle mouse painting
+            function handlePainting(square) {
+                if (isMouseDown && !shiftKeyPressed) {
+                    if (lastSquare === null || square[0] !== lastSquare[0] || square[1] !== lastSquare[1]) {
+                        // Paint the square if it's different from the last square
+                        var x = square[0];
+                        var y = square[1];
+                        $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
+                        lastSquare = square;
+                    }
+                }
+            }
+
+            // Event listener for mouse down event
+            $(".square").mousedown(function() {
+                isMouseDown = true;
+                var square = [$(this).data("x"), $(this).data("y")];
+                handlePainting(square);
+            });
+
+            // Event listener for mouse enter event (when the mouse moves over a square)
+            $(".square").mouseenter(function() {
+                var square = [$(this).data("x"), $(this).data("y")];
+                handlePainting(square);
+            });
+
+            // Event listener for mouse up event
+            $(document).mouseup(function() {
+                isMouseDown = false;
+                lastSquare = null;
+            });
+
+
             $(".square").click(function() {
                 var square = $(this);
                 var x = $(this).data("x");
@@ -200,7 +236,7 @@
                 <div class="sidebar py-4">
                     <button id="downloadBtn" class="btn btn-primary">Download Obstacles</button>
                     <button id="clearBtn" class="btn btn-danger mt-2">Clear Obstacles</button>
-                    <p id="obs">Obstacles:</p>
+                    <textarea id="obs">Obstacles:</textarea>
                 </div>
             </div>
                 <div class="col-md-10">
