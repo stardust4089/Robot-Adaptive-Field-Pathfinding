@@ -4,21 +4,23 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <title>Static Bounds</title>
     <style>
+        /* Main background color */
+        body {
+            background-color: #343a40;
+        }
+
+        /* Container and grid styles */
         .grid-container {
-            position: relative; /* Set the container as relative */
-            width: 1500;
-            height: 727;
-            margin: 20px; /* Add margins around the grid container */
-            overflow: hidden; /* Prevent content from overflowing */
+            position: relative;
+            width: calc(75vw); /* Adjust the width to account for the sidebar width and margins */
+            height: calc(75vh); /* Adjust the height to account for the top and bottom margins */
+            margin: 20px 20px 20px 320px; /* Adjust the left margin to account for the sidebar width */
+            overflow: hidden;
+            background-color: white;
         }
-
-        .hidden {
-            display: none !important;
-        }
-
 
         .grid {
-            position: absolute; /* Set the grid as absolute */
+            position: absolute;
             top: 0;
             left: 0;
             right: 0;
@@ -27,38 +29,38 @@
             grid-template-columns: repeat(165, 1fr);
             grid-template-rows: repeat(80, 1fr);
             gap: 0px;
-            box-sizing: border-box;  /* Include outline in grid dimensions */
-            background-color: transparent; /* Set background color to transparent */
+            box-sizing: border-box;
         }
 
         .square {
             outline-color: darkgrey;
-            box-sizing: border-box;  /* Include outline in square dimensions */
-            border-right: 0.25px solid black;
-            border-top: 0.25px solid black;
-
+            box-sizing: border-box;
+            border-right: 0.25px solid rgba(0, 0, 0, 0.5);
+            border-top: 0.25px solid rgba(0, 0, 0, 0.5);
         }
 
         /* Add borders to show the outline of each square */
         .square:nth-child(165n + 1) {
-            border-left: 0.25px solid black;
+            border-left: 0.25px solid rgba(0, 0, 0, 0.5);
         }
 
         /* Add a bottom border to the very bottom squares */
         .square:nth-last-child(-n+165) {
-            border-bottom: 0.25px solid black;
+            border-bottom: 0.25px solid rgba(0, 0, 0, 0.5);
         }
 
-        .square.clicked {
-            background-color: greenyellow;
-        }
-
+        /* Color scheme */
         .square.obstacle {
             background-color: red;
         }
 
+        /* Color scheme */
+        .square.clicked {
+            background-color: orange;
+        }
+
         .background-image {
-            position: absolute; /* Set the background image as absolute */
+            position: absolute;
             top: 0;
             left: 0;
             right: 0;
@@ -67,17 +69,97 @@
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
-            opacity: 0.7; /* Adjust the opacity as needed */
+            opacity: 0.7;
         }
-        /* Rest of your CSS styles */
+
+
+        .logo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("{{ url_for('static', filename='logo.png') }}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+     
+        }
+
+        /* Sidebar styles 
         .sidebar {
             position: absolute;
             top: 0;
             left: 0;
-            width: 200px;
+            width: 300px;
             height: 100%;
-            background-color: #f1f1f1;
+            background-color: #212529;
             padding: 20px;
+        }*/
+
+        /* Button styles */
+        .btn-primary {
+            background-color: #FFA500;
+            border-color: #FFA500;
+        }
+
+        .btn-primary:hover {
+            background-color: #FF8C00;
+            border-color: #FF8C00;
+        }
+
+        .btn-primary:focus {
+            box-shadow: 0 0 0 0.25rem rgba(255, 165, 0, 0.5);
+        }
+
+        .btn-secondary {
+            background-color: #FFA500;
+            border-color: #FFA500;
+        }
+
+        .btn-secondary:hover {
+            background-color: #FF8C00;
+            border-color: #FF8C00;
+        }
+
+        .btn-danger {
+            background-color: #FFA500;
+            border-color: #FFA500;
+        }
+
+        .btn-danger:hover {
+            background-color: #FF8C00;
+            border-color: #FF8C00;
+        }
+        /* Topbar styles */
+        .top-bar {
+            background-color: #212529;
+            margin-bottom: 20px; /* Add margin bottom to push content below the navbar */
+        }
+
+        .top-bar .navbar-brand {
+            color: white;
+        }
+
+        .top-bar .nav-link {
+            color: white;
+        }
+        @media (min-width: 991.98px) {
+            main {
+                padding-left: 240px;
+            }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            padding: 58px 0 0; /* Height of navbar */
+            box-shadow: 0 2px 5px 0 rgb(0 0 0 / 5%), 0 2px 10px 0 rgb(0 0 0 / 5%);
+            width: 240px;
+            z-index: 600;
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -90,22 +172,21 @@
                 $("#obs").toggleClass("hidden");
             });
 
-            // Function to update the width and height of the grid container
+            // Function to update the width of the grid container
             function updateGridSize() {
                 var windowWidth = $(window).width();
-                var windowHeight = $(window).height();
                 $('.grid-container').css({
-                    width: windowWidth * 0.8 + 'px',
-                    height: windowHeight * 0.8 + 'px'
+                    width: (windowWidth - 320) * 0.8 + 'px' // Subtract the sidebar width from the window width
+
                 });
             }
 
             // Call the updateGridSize function on page load
-            updateGridSize();
+            //updateGridSize();
 
             // Call the updateGridSize function whenever the window is resized
             $(window).resize(function() {
-                updateGridSize();
+                //updateGridSize();
             });
 
 
@@ -114,14 +195,21 @@
             // Function to retrieve the obstacles array and highlight the corresponding squares
             function highlightObstacles() {
                 if (shiftKeyPressed) return;
-                $.get("/get_obstacles", function(data) {
-                    var obstacles = data.obstacles;
-                    document.getElementById("obs").innerHTML = obstacles;
-                    obstacles.forEach(function(obstacle) {
-                        var x = obstacle[0];
-                        var y = obstacle[1];
-                        $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
-                    });
+                $.ajax({
+                    url: "/get_obstacles",
+                    type: "GET",
+                    success: function(data) {
+                        var obstacles = data.obstacles;
+                        document.getElementById("obs").innerHTML = obstacles;
+                        obstacles.forEach(function(obstacle) {
+                            var x = obstacle[0];
+                            var y = obstacle[1];
+                            $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
+                        });                          
+                    },
+                    error: function() {
+                        console.error("Failed to collect obstacles.");
+                    }
                 });
             }
 
@@ -250,36 +338,66 @@
     
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-2">
-                <div class="sidebar py-4">
-                    
-                    <button id="downloadBtn" class="btn btn-primary">Download Obstacles</button>
-                    <form id="uploadForm" enctype="multipart/form-data">
-                        <input type="file" id="jsonFileInput" name="jsonFile" accept=".json">
-                        <button type="submit" id="uploadBtn" class="btn btn-primary mt-2">Update Config
-                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        </button>
-                    </form>
-                    <button id="clearBtn" class="btn btn-danger mt-2">Clear Obstacles</button>
-                    <button id="toggleObsBtn" class="btn btn-secondary mt-2">Toggle Debugging</button>
-                    <a href="/runny_nose" download>Download Path</a>
-
-                    <b></b>
-                    <label for="obs">Debugging</label>
-                    <textarea name="obs" id="obs">Obstacles:</textarea>
+    <!--Main Navigation-->
+<header>
+    <!-- Sidebar -->
+    <!-- based on example from https://mdbootstrap.com/docs/standard/extended/side-navbar/-->
+    <nav id="sidebarMenu" class="collapse d-lg-block sidebar collapse bg-white">
+      <div class="position-sticky">
+        <div class="list-group list-group-flush mx-3 mt-4">
+            <form id="uploadForm" class="mb-2"enctype="multipart/form-data">
+                <div class="input-group mb-2">
+                    <input type="file" id="jsonFileInput" name="jsonFile" accept=".json" class="form-control">
                 </div>
-            </div>
-                <div class="col-md-10">
+                <button type="submit" id="uploadBtn" class="btn btn-primary mt-2">Load Config</button>
+            </form>                    
+            <button id="clearBtn" class="btn btn-danger mt-2">Clear Obstacles</button>
+            <button id="downloadBtn" class="btn btn-primary mb-2 mt-2">Download Obstacles</button>
+            <b></b>
+            <a href="/runny_nose" download>Download Path</a>
+
+            </b>
+            <label for="obs">Debugging</label>
+            <textarea name="obs" id="obs" hidden>Obstacles:</textarea>  
+        </div>
+      </div>
+    </nav>
+    <!-- Sidebar -->
+  
+    <!-- Navbar -->
+    <nav id="main-navbar" class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
+      <!-- Container wrapper -->
+      <div class="container-fluid">
+        <!-- Toggle button -->
+        <button class="navbar-toggler" type="button" data-mdb-toggle="collapse" data-mdb-target="#sidebarMenu"
+          aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+          <i class="fas fa-bars"></i>
+        </button>
+  
+        <!-- Brand -->
+        <a class="navbar-brand" href="#">
+          <img src="https://mdbcdn.b-cdn.net/img/logo/mdb-transaprent-noshadows.webp" height="25" alt="MDB Logo"
+            loading="lazy" />
+        </a>
+      </div>
+    </nav>
+  </header>
+  
+  <!--Main layout-->
+  <main style="margin-top: 58px;">
+    <div class="container pt-4"></div>
+  </main>
+  <!--Main layout-->
+            <div class="col-md-9">
+                <div class="main-content">
                     <div class="grid-container">
                         <div class="background-image"></div>
                         <div class="grid">
                             {% for y in range(80, 0 , -1) %}
-                                {% for x in range(165) %}
+                                {% for x in range(0, 165, 1) %}
                                     <div class="square grid_item" data-x="{{ x }}" data-y="{{ y }}"></div>
                                 {% endfor %}
-                            {% endfor %}
+                            {% endfor %}                        
                         </div>
                     </div>
                 </div>

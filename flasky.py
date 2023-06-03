@@ -5,6 +5,8 @@ import os
 import json
 import math
 from queue import PriorityQueue
+from collections import OrderedDict 
+import pandas as pd
 
 class Shape:
     # POINT INPUT MUST BE IN COUNTER CLOCKWISE ORDER
@@ -29,7 +31,7 @@ class Node:
 app = Flask(__name__)
 
 # Create an empty array to store the clicked points
-obstacles = [(164,0)]
+obstacles = [[-1,-1]]
 
 # Define the size of the grid
 grid_width = 165
@@ -41,8 +43,8 @@ ppfile = "a"
 new_points = []
 # Define your grid dimensions, start point, and goal point
 # decimeters    
-START = (0, 0)
-GOAL = (160, 70)
+START = (18, 32)
+GOAL = (115, 32)
 # Define movement costs (you can adjust these as needed)
 MOVE_STRAIGHT_COST = 1
 MOVE_DIAGONAL_COST = math.sqrt(2)
@@ -50,20 +52,13 @@ MOVE_DIAGONAL_COST = math.sqrt(2)
 # Define the output file path
 OUTPUT_FILE = "path_output.path"
 
-
-# Define the colors
-color_normal = "gray"  # Color for normal squares
-color_clicked = "blue"  # Color for clicked squares
-color_obstacle = "red"  # Color for obstacle squares
-
-# Variables to track the shape construction
-
 @app.route('/')
 def index():
     return render_template('index.html', obstacles=obstacles, ppfile=ppfile, new_points=new_points)
 
 @app.route('/upload_json', methods=['POST'])
 def upload_json():
+    global obstacles
     if 'jsonFile' in request.files:
         json_file = request.files['jsonFile']
         try:
@@ -72,7 +67,7 @@ def upload_json():
 
             # Add the contents of the JSON file to the obstacles array
             obstacles.extend(json_data)
-
+            print(obstacles)
             return jsonify({'message': 'JSON file uploaded successfully.'}), 200
         except json.JSONDecodeError:
             return jsonify({'message': 'Invalid JSON file.'}), 400
@@ -81,18 +76,20 @@ def upload_json():
 
 @app.route('/add_point', methods=['POST'])
 def add_point():
-    global obstacles, shape_points
-
     x = int(request.form['x'])
+    clamp(x, 0, grid_width)
     y = int(request.form['y'])
-    y = y % 80
-    point = (x, y)
-    
+    clamp(y, 0, grid_height)
+    point = [x, y]
+    if [-1,-1] in obstacles:
+        obstacles.remove([-1,-1])
     if point in obstacles:
         obstacles.remove(point)
+        print("Removed point:", point)
         return json.dumps((-1,-1))
     else:
         obstacles.append(point)
+        print("Added point:", point)
         return json.dumps(point)
 
 
@@ -115,6 +112,8 @@ def clear_obstacles():
 @app.route('/construct_shape', methods=['POST', 'GET'])
 def construct_shape():
     global shape_points, obstacles
+    if [-1,-1] in obstacles:
+        obstacles.remove([-1,-1])
     temp = []
     temp = json.loads(request.form['shape_points'])
     #shape_points = json.loads(request.form['points'])
@@ -133,11 +132,13 @@ def construct_shape():
     points += bresenham_line(x4, y4, x1, y1)
     points += bresenham_line(x1, y1, x3, y3)
     points += bresenham_line(x2, y2, x4, y4)
-
+    
     for point in points:
         x, y = point
+        point[0] = clamp(x, 0, grid_width)
+        point[1] = clamp(y, 0, grid_height)
         obstacles.append(point)
-
+    obstacles = pd.Series(obstacles).drop_duplicates().tolist()
     print("New Obstacles:", points)
     new_points=points
     return json.dumps(new_points)
@@ -368,6 +369,8 @@ def run():
 
     return send_file(file_path, as_attachment=True)
 
+def clamp(num, min_value, max_value):
+   return max(min(num, max_value), min_value)
 
 if __name__ == '__main__':
     # Calculate the square size based on the screen size and grid size
