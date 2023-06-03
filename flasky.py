@@ -34,8 +34,8 @@ app = Flask(__name__)
 obstacles = [[-1,-1]]
 
 # Define the size of the grid
-grid_width = 165
-grid_height = 80
+grid_width = 166
+grid_height = 81
 square_size = 0  # Size of each square in pixels
 
 
@@ -43,8 +43,8 @@ ppfile = "a"
 new_points = []
 # Define your grid dimensions, start point, and goal point
 # decimeters    
-START = (18, 32)
-GOAL = (115, 32)
+START = (6, 1)
+GOAL = (164, 80)
 # Define movement costs (you can adjust these as needed)
 MOVE_STRAIGHT_COST = 1
 MOVE_DIAGONAL_COST = math.sqrt(2)
@@ -77,9 +77,9 @@ def upload_json():
 @app.route('/add_point', methods=['POST'])
 def add_point():
     x = int(request.form['x'])
-    clamp(x, 0, grid_width)
+    clamp(x, 0, grid_width - 1)
     y = int(request.form['y'])
-    clamp(y, 0, grid_height)
+    clamp(y, 0, grid_height - 1)
     point = [x, y]
     if [-1,-1] in obstacles:
         obstacles.remove([-1,-1])
@@ -135,9 +135,9 @@ def construct_shape():
     
     for point in points:
         x, y = point
-        point[0] = clamp(x, 0, grid_width)
-        point[1] = clamp(y, 0, grid_height)
-        obstacles.append(point)
+        x = clamp(x, 0, grid_width - 1)
+        y = clamp(y, 0, grid_height - 1)
+        obstacles.append((x,y))
     obstacles = pd.Series(obstacles).drop_duplicates().tolist()
     print("New Obstacles:", points)
     new_points=points
@@ -200,7 +200,8 @@ def config():
 
     # Set the obstacle flag for nodes that contain obstacles
     for obstacle in obstacles:
-        grid[obstacle[0]][obstacle[1]].obstacle = True
+        print(obstacle[0], " , ", obstacle[1])
+        grid[obstacle[0]] [obstacle[1]].obstacle = True
 
 # Heuristic function for estimating the distance between two nodes (Manhattan distance)
 def heuristic(node_a, node_b):
