@@ -50,7 +50,7 @@
         }
 
         .square.clicked {
-            background-color: blue;
+            background-color: greenyellow;
         }
 
         .square.obstacle {
@@ -163,8 +163,8 @@
                         }).fail(function() {
                             console.error("Failed to add point.");
                         });
+
                         lastSquare = square;
-                        highlightObstacles()
                     }
                 }
             }
@@ -200,17 +200,26 @@
                         $(this).addClass("clicked");
                     } 
                     if (shapePoints.length >= 4) {
-                        $.post("/construct_shape", {"shape_points": JSON.stringify(shapePoints)}, function(data) {
-                            $(".square").removeClass("clicked");
-                            shapePoints = []; // Clear the shape points
-                        }).done(function() {
-                            console.log("Shape construction successful.");
-                        }).fail(function() {
-                            console.error("Failed to construct shape.");
+                        $.ajax({
+                            url: "/construct_shape",
+                            type: "POST",
+                            data: {"shape_points": JSON.stringify(shapePoints)},
+                            dataType: "json",
+                            success: function(data) {
+                                $(".square").removeClass("clicked");
+                                shapePoints = []; // Clear the shape points
+                                data.forEach(function(obstacle) {
+                                    var x = obstacle[0];
+                                    var y = obstacle[1];
+                                    $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
+                                });                            
+                            },
+                            error: function() {
+                                console.error("Failed to construct shape.");
+                            }
                         });
                     }
                 } 
-                highlightObstacles()
             });
             // Download button click event handler
             $("#downloadBtn").click(function() {
@@ -245,7 +254,14 @@
         <div class="row">
             <div class="col-md-2">
                 <div class="sidebar py-4">
+                    
                     <button id="downloadBtn" class="btn btn-primary">Download Obstacles</button>
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <input type="file" id="jsonFileInput" name="jsonFile" accept=".json">
+                        <button type="submit" id="uploadBtn" class="btn btn-primary mt-2">Update Config
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                    </form>
                     <button id="clearBtn" class="btn btn-danger mt-2">Clear Obstacles</button>
                     <button id="toggleObsBtn" class="btn btn-secondary mt-2">Toggle Debugging</button>
                     <a href="/runny_nose" download>Download Path</a>
@@ -272,6 +288,17 @@
     </div>
 </body>
 <script>
+    function highlightObstacles() {
+        $.get("/get_obstacles", function(data) {
+            var obstacles = data.obstacles;
+            document.getElementById("obs").innerHTML = obstacles;
+            obstacles.forEach(function(obstacle) {
+                var x = obstacle[0];
+                var y = obstacle[1];
+                $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
+            });
+        });
+    }
     $(document).ready(function() {
         // Function to clear obstacles and reset highlighting
         function clearObstacles() {
@@ -288,5 +315,48 @@
             clearObstacles();
         });
     });
+    // Event listener for Upload JSON File button click
+    $("#uploadForm").submit(function(event) {
+        event.preventDefault(); // Prevent form submission
+        var $button = $(this);
+        var $spinner = $button.find(".spinner-border");
+
+        // Disable the button
+        $button.prop("disabled", true);
+
+        // Show the spinner and hide the text
+        $spinner.removeClass("d-none");
+
+        var formData = new FormData();
+        formData.append("jsonFile", $("#jsonFileInput")[0].files[0]);
+
+        $.ajax({
+            url: "/upload_json",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(data) {
+                console.log("JSON file uploaded successfully.");
+                highlightObstacles(); // Refresh the obstacles highlighting
+                // Enable the button
+                $button.prop("disabled", false);
+
+                // Hide the spinner and show the text
+                $spinner.addClass("d-none");
+            },
+            error: function() {
+                alert("Failed to upload JSON file and apply config. Please try again or upload a different config file if this issue persists.");
+                console.error("Failed to upload JSON file.");
+                // Enable the button
+                $button.prop("disabled", false);
+
+                // Hide the spinner and show the text
+                $spinner.addClass("d-none");
+            }
+            
+        });
+    });
+
 </script>
 </html>

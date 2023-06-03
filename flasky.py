@@ -38,6 +38,7 @@ square_size = 0  # Size of each square in pixels
 
 
 ppfile = "a"
+new_points = []
 # Define your grid dimensions, start point, and goal point
 # decimeters    
 START = (0, 0)
@@ -56,12 +57,27 @@ color_clicked = "blue"  # Color for clicked squares
 color_obstacle = "red"  # Color for obstacle squares
 
 # Variables to track the shape construction
-shape_points = []  # Stores the points for shape construction
 
-# Function to handle mouse clicks
 @app.route('/')
 def index():
-    return render_template('index.html', obstacles=obstacles, ppfile=ppfile)
+    return render_template('index.html', obstacles=obstacles, ppfile=ppfile, new_points=new_points)
+
+@app.route('/upload_json', methods=['POST'])
+def upload_json():
+    if 'jsonFile' in request.files:
+        json_file = request.files['jsonFile']
+        try:
+            # Load the JSON data from the uploaded file
+            json_data = json.load(json_file)
+
+            # Add the contents of the JSON file to the obstacles array
+            obstacles.extend(json_data)
+
+            return jsonify({'message': 'JSON file uploaded successfully.'}), 200
+        except json.JSONDecodeError:
+            return jsonify({'message': 'Invalid JSON file.'}), 400
+    else:
+        return jsonify({'message': 'No JSON file uploaded.'}), 400
 
 @app.route('/add_point', methods=['POST'])
 def add_point():
@@ -74,16 +90,21 @@ def add_point():
     
     if point in obstacles:
         obstacles.remove(point)
+        return json.dumps((-1,-1))
     else:
         obstacles.append(point)
+        return json.dumps(point)
 
-    return json.dumps(obstacles)
+
 
 @app.route('/get_obstacles')
 def get_obstacles():
     obs = obstacles
     return jsonify(obstacles=obs)
-
+@app.route('/get_new_obstacles')
+def get_new_obstacles():
+    new_points = new_points
+    return jsonify(new_points=new_points)
 # Endpoint to clear the obstacles array
 @app.route('/clear_obstacles', methods=['POST'])
 def clear_obstacles():
@@ -91,7 +112,7 @@ def clear_obstacles():
     obstacles = []  # Clear the obstacles array
     return jsonify(message='Obstacles cleared successfully')
 
-@app.route('/construct_shape', methods=['POST'])
+@app.route('/construct_shape', methods=['POST', 'GET'])
 def construct_shape():
     global shape_points, obstacles
     temp = []
@@ -117,10 +138,9 @@ def construct_shape():
         x, y = point
         obstacles.append(point)
 
-    obstacles = list(set(obstacles))
-    print("Obstacles:", obstacles)
-    shape_points = []
-    return json.dumps(obstacles)
+    print("New Obstacles:", points)
+    new_points=points
+    return json.dumps(new_points)
 
 def construct_shape(p1, p2, p3, p4):
     x1, y1 = p1
