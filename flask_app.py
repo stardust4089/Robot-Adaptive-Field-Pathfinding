@@ -8,15 +8,8 @@ import math
 from queue import PriorityQueue
 import pandas as pd
 import TFLite_detection_webcam
-import threading
 import math
 
-class Shape:
-    # POINT INPUT MUST BE IN COUNTER CLOCKWISE ORDER
-    def __init__(self, p1, p2, p3, p4):
-        self.points = [p1, p2, p3, p4]
-
-# Define a class to represent each node on the grid
 class Node:
     def __init__(self, x, y):
         self.x = x
@@ -25,22 +18,20 @@ class Node:
         self.h = float('inf')  # estimated cost to goal node
         self.f = float('inf')  # total cost
         self.parent = None
-        self.obstacle = False  # whether the node is an obstacle
+        self.obstacle = False 
 
     def __lt__(self, other):
         return self.f < other.f
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 
-# Create a lock to ensure thread safety
-lock = threading.Lock()
 # Create an empty array to store the clicked points
 obstacles = [[-1,-1]]
+#handles robots
 moving_obstacles = [[1,1]]
 
-# Define the size of the grid
+# Define the size of the grid (decimeeters)
 grid_width = 166
 grid_height = 81
 square_size = 0  # Size of each square in pixels
@@ -48,21 +39,21 @@ square_size = 0  # Size of each square in pixels
 new_points = []
 grid = [[Node(x, y) for y in range(grid_height)] for x in range(grid_width)]
 
-# Define your grid dimensions, start point, and goal point
+camera = cv2.VideoCapture("D:/xyzab.mp4")  # use 0 for web camera
+moving_obstacles = []
+
 # decimeters    
 START = (6, 1)
 GOAL = (164, 80)
-# Define movement costs (you can adjust these as needed)
+
 MOVE_STRAIGHT_COST = 1
 MOVE_DIAGONAL_COST = math.sqrt(2)
 
-# Define the output file path
 OUTPUT_FILE = "path_output.path"
 
 @app.route('/')
 def index():
-    
-    frame = None
+    frame = None #this is a load-bearing line of code
     return render_template('index.html', obstacles=obstacles, moving_obstacles=moving_obstacles, new_points=new_points, frame=frame)
 
 @app.route('/upload_json', methods=['POST'])
@@ -71,10 +62,8 @@ def upload_json():
     if 'jsonFile' in request.files:
         json_file = request.files['jsonFile']
         try:
-            # Load the JSON data from the uploaded file
             json_data = json.load(json_file)
 
-            # Add the contents of the JSON file to the obstacles array
             obstacles.extend(json_data)
             print(obstacles)
             return jsonify({'message': 'JSON file uploaded successfully.'}), 200
@@ -101,29 +90,30 @@ def add_point():
         print("Added point:", point)
         return json.dumps(point)
 
-
-
 @app.route('/get_obstacles')
 def get_obstacles():
     obs = obstacles
     return jsonify(obstacles=obs)
+
 @app.route('/get_moving_obstacles')
 def get__moving_obstacles():
     movobs = moving_obstacles
     return jsonify(moving_obstacles=movobs)
+
 @app.route('/get_fps')
 def get_fps():
     fps = TFLite_detection_webcam.get_fps()
     return jsonify(fps=fps)
+
 @app.route('/get_new_obstacles')
 def get_new_obstacles():
     new_points = new_points
     return jsonify(new_points=new_points)
-# Endpoint to clear the obstacles array
+
 @app.route('/clear_obstacles', methods=['POST'])
 def clear_obstacles():
     global obstacles
-    obstacles = []  # Clear the obstacles array
+    obstacles = []
     return jsonify(message='Obstacles cleared successfully')
 
 @app.route('/construct_shape', methods=['POST', 'GET'])
@@ -133,9 +123,7 @@ def construct_shape():
         obstacles.remove([-1,-1])
     temp = []
     temp = json.loads(request.form['shape_points'])
-    #shape_points = json.loads(request.form['points'])
 
-    # Get the coordinates of the shape points
     x1, y1 = temp[0]
     x2, y2 = temp[1]
     x3, y3 = temp[2]
@@ -214,15 +202,10 @@ def bresenham_line(x0, y0, x1, y1):
 
 def config():
     global grid
-    # Create a grid of nodes
-
-    # Set the obstacle flag for nodes that contain obstacles
     for obstacle in obstacles:
         print(obstacle[0], " , ", obstacle[1])
         grid[obstacle[0]] [obstacle[1]].obstacle = True
     
-
-# Heuristic function for estimating the distance between two nodes (Manhattan distance)
 def heuristic(node_a, node_b):
     return abs(node_a.x - node_b.x) + abs(node_a.y - node_b.y)
 
@@ -234,6 +217,7 @@ def changed_direction(curr_node, prev_node, prev_prev_node):
     if (x_delta == old_x_delta and y_delta == old_y_delta):
         return False
     return True
+
 #im gay
 def reverse_linked_list(head):
     prev_node = None
@@ -248,7 +232,6 @@ def reverse_linked_list(head):
     # Return the new head of the reversed linked list
     return prev_node
 
-# Function to generate the path from the goal node to the start node
 def generate_path(end_node):
     path = []
     current_node = reverse_linked_list(end_node)
@@ -294,24 +277,18 @@ def generate_path(end_node):
 
         if (current_node is not None and prev_node is not None and prev_prev_node is not None and (delay <= 0)):
             did_change_dir = changed_direction(current_node, prev_node, prev_prev_node)
-    # Update the nextControl values
     for i in range(len(path)-1):
         path[i]["nextControl"] = path[i+1]["anchorPoint"]
     
-    # Set prevControl to None for the first waypoint
     path[0]["prevControl"] = None
     
-    # Set nextControl to None for the last waypoint
     path[-1]["nextControl"] = None
     
     return path
 
-# A* algorithm implementation
 def astar():
-    # Create the priority queue
     open_set = PriorityQueue()
     
-    # Initialize the start node
     start_node = grid[START[0]][START[1]]
     start_node.g = 0
     start_node.h = heuristic(start_node, grid[GOAL[0]][GOAL[1]])
@@ -319,14 +296,11 @@ def astar():
     open_set.put(start_node)
     
     while not open_set.empty():
-        # Get the node with the lowest f-score from the open set
         current_node = open_set.get()
         
-        # Check if the goal has been reached
         if current_node.x == GOAL[0] and current_node.y == GOAL[1]:
             return current_node
         
-        # Explore the neighboring nodes
         neighbors = []
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
@@ -343,34 +317,28 @@ def astar():
             if neighbor.obstacle:
                 continue
             
-            # Calculate the tentative g-score for the neighbor
             if abs(neighbor.x - current_node.x) + abs(neighbor.y - current_node.y) == 1:
                 tentative_g_score = current_node.g + MOVE_STRAIGHT_COST
             else:
                 tentative_g_score = current_node.g + MOVE_DIAGONAL_COST
             
             if tentative_g_score < neighbor.g:
-                # Update the neighbor's properties
                 neighbor.parent = current_node
                 neighbor.g = tentative_g_score
                 neighbor.h = heuristic(neighbor, grid[GOAL[0]][GOAL[1]])
                 neighbor.f = neighbor.g + neighbor.h
                 
-                # Add the neighbor to the priority queue
                 if neighbor not in open_set.queue:
                     open_set.put(neighbor)
     
-    # No path found
     return None
 
 @app.route('/runny_nose', methods=['POST', 'GET'])
 def run():
     config()
 
-    # Run the A* algorithm
     path = astar()
 
-    # Generate the output file in .path format
     output_data = {
         "waypoints": [],
         "markers": []
@@ -381,7 +349,6 @@ def run():
     else:
         print("No path found")
     
-    # Write the output file
     with open("path_output.path", 'w') as file:
         json.dump(output_data, file, indent=2)
     
@@ -392,32 +359,14 @@ def run():
 def clamp(num, min_value, max_value):
    return max(min(num, max_value), min_value)
 
-# @app.route('/pass_frame', methods=['POST', 'GET'])
-# def pass_frame():
-#     frame = TFLite_detection_webcam.frame
-#     if (frame is None):
-#         return None
-
-#     # Convert the frame to JPEG format
-#     ret, jpeg = cv2.imencode('.jpg', frame)
-
-#     # Create a Flask response with the JPEG image
-#     response = make_response(jpeg.tobytes())
-#     response.headers['Content-Type'] = 'image/jpeg'
-
-#     return response
-
-camera = cv2.VideoCapture("D:/xyzab.mp4")  # use 0 for web camera
-moving_obstacles = []
-def gen_frames():  # generate frame by frame from camera
+def gen_frames(): 
     global moving_obstacles
     while True:
-        # Capture frame-by-frame
-        success, frame = camera.read()  # read the camera frame
+        success, frame = camera.read()
         if not success:
             continue
         else:
-            frame, coords = TFLite_detection_webcam.run_model(frame) # read the camera frame
+            frame, coords = TFLite_detection_webcam.run_model(frame)
             for obs in moving_obstacles:
                 grid[obs[0]] [obs[1]].obstacle = False
             print(moving_obstacles)
@@ -441,7 +390,6 @@ def gen_frames():  # generate frame by frame from camera
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  
             
-
 def define_world_space_position(x1, y1, x2, y2):
     global camera, fov_horizontal, fov_vertical
     # Camera specifications
@@ -451,15 +399,15 @@ def define_world_space_position(x1, y1, x2, y2):
     fov_vertical = 40  # Vertical field of view in degrees
 
     # Real-world dimensions
-    grid_width = 16.5  # Width of the grid in meters
-    grid_height = 8  # Height of the grid in meters
+    grid_width = 16.5  
+    grid_height = 8  
 
     # Camera position on the grid
-    camera_x = 82  # X-coordinate of the camera on the grid
-    camera_y = 40  # Y-coordinate of the camera on the grid
+    camera_x = 82  
+    camera_y = 40  
 
     # Camera rotation angle in degrees
-    camera_rotation = 45  # Example angle (modify according to your scenario)
+    camera_rotation = 45  # Example angle
 
     # Box properties
     box_xmin = x1  # X-coordinate of the bottom-left corner of the box on the screen
@@ -503,32 +451,18 @@ def define_world_space_position(x1, y1, x2, y2):
     top_right_x = bottom_left_x + box_width_real
     top_right_y = bottom_left_y + box_height_real
 
-    # Print the result
-    print("Box position in real-world space:")
-    print("Bottom-left corner: ({}, {})".format(bottom_left_x, bottom_left_y))
-    print("Top-right corner: ({}, {})".format(top_right_x, top_right_y))
-
     return (bottom_left_x, bottom_left_y, top_right_x, top_right_y)
-
 
 def set_fov(fov_h, fov_v):
     global fov_horizontal, fov_vertical
     fov_horizontal = fov_h
     fov_vertical = fov_v
 
-
 @app.route('/video_feed')
 def video_feed():
-    #Video streaming route. Put this in the src attribute of an img tag
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
             
 if __name__ == '__main__':
-    # Calculate the square size based on the screen size and grid size
     square_size = min(math.floor(800 / grid_height), math.floor(1650 / grid_width))
-    # video_streaming_thread = Thread(target=TFLite_detection_webcam.run_model)
-    # video_streaming_thread.daemon = True
-    # video_streaming_thread.start()
-    
-
     app.run()
 
