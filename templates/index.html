@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <title>Static Bounds</title>
@@ -12,16 +13,19 @@
 
         .nav-container {
             display: flex;
-            align-items: left !important; 
+            align-items: left !important;
             justify-content: left !important;
         }
 
         /* Container and grid styles */
         .grid-container {
             position: relative;
-            width: calc(75vw); /* Adjust the width to account for the sidebar width and margins */
-            height: calc(75vh); /* Adjust the height to account for the top and bottom margins */
-            margin: 20px 20px 20px 350px; /* Adjust the left margin to account for the sidebar width */
+            width: calc(75vw);
+            /* Adjust the width to account for the sidebar width and margins */
+            height: calc(75vh);
+            /* Adjust the height to account for the top and bottom margins */
+            margin: 20px 20px 20px 350px;
+            /* Adjust the left margin to account for the sidebar width */
             overflow: hidden;
             background-color: white;
         }
@@ -100,22 +104,31 @@
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
-     
+
         }
+
         .miniplayer {
-            position: absolute; /* Position the miniplayer absolutely */
-            bottom: 0; /* Position it at the bottom */
-            left: 0; /* Adjust left position if necessary */
-            width: 100%; /* Make it span the entire width */
-            margin: 0; /* Remove margins */
-            padding: 0; /* Remove padding */
+            position: absolute;
+            /* Position the miniplayer absolutely */
+            bottom: 0;
+            /* Position it at the bottom */
+            left: 0;
+            /* Adjust left position if necessary */
+            width: 100%;
+            /* Make it span the entire width */
+            margin: 0;
+            /* Remove margins */
+            padding: 0;
+            /* Remove padding */
         }
 
         .miniplayer img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Maintain aspect ratio and cover the container */
-            z-index: 10000; /* Set a higher z-index to make the image appear above the spinner */
+            object-fit: cover;
+            /* Maintain aspect ratio and cover the container */
+            z-index: 10000;
+            /* Set a higher z-index to make the image appear above the spinner */
 
         }
 
@@ -123,15 +136,19 @@
             bottom: 0;
             position: absolute;
             left: 50%;
-            top: 50%; /* Adjust top position to center the spinner */
-            z-index: -1000; /* Set a lower z-index to make the spinner appear behind the image */
+            top: 50%;
+            /* Adjust top position to center the spinner */
+            z-index: -1000;
+            /* Set a lower z-index to make the spinner appear behind the image */
         }
-        
+
         .miniplayer-spinner {
-            position: absolute; /* Position the miniplayer absolutely */
-            margin-top:85%; 
+            position: absolute;
+            /* Position the miniplayer absolutely */
+            margin-top: 85%;
             margin-left: 0px;
-            padding: 0; /* Remove padding */
+            padding: 0;
+            /* Remove padding */
         }
 
 
@@ -169,10 +186,12 @@
             background-color: #FF8C00;
             border-color: #FF8C00;
         }
+
         /* Topbar styles */
         .top-bar {
             background-color: #212529;
-            margin-bottom: 20px; /* Add margin bottom to push content below the navbar */
+            margin-bottom: 20px;
+            /* Add margin bottom to push content below the navbar */
         }
 
         .top-bar .navbar-brand {
@@ -182,6 +201,7 @@
         .top-bar .nav-link {
             color: white;
         }
+
         @media (min-width: 991.98px) {
             main {
                 padding-left: 240px;
@@ -200,20 +220,18 @@
             background-color: #212529;
             z-index: 600;
         }
-
-
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        $(document).ready(function() {
-            function getFPS(){
-                $.get("/get_fps", function(data) {
+        $(document).ready(function () {
+            function getFPS() {
+                $.get("/get_fps", function (data) {
                     var fps = data.fps
                     console.log(fps)
                 });
             }
             // Event listener for Toggle Debugging button click
-            $("#toggleObsBtn").click(function() {
+            $("#toggleObsBtn").click(function () {
                 $("#obs").toggleClass("hidden");
             });
 
@@ -230,7 +248,7 @@
             //updateGridSize();
 
             // Call the updateGridSize function whenever the window is resized
-            $(window).resize(function() {
+            $(window).resize(function () {
                 //updateGridSize();
             });
 
@@ -243,16 +261,16 @@
                 $.ajax({
                     url: "/get_obstacles",
                     type: "GET",
-                    success: function(data) {
+                    success: function (data) {
                         var obstacles = data.obstacles;
                         document.getElementById("obs").innerHTML = obstacles;
-                        obstacles.forEach(function(obstacle) {
+                        obstacles.forEach(function (obstacle) {
                             var x = obstacle[0];
                             var y = obstacle[1];
                             $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
-                        });                          
+                        });
                     },
-                    error: function() {
+                    error: function () {
                         console.error("Failed to collect obstacles.");
                     }
                 });
@@ -264,20 +282,20 @@
                 $.ajax({
                     url: "/get_moving_obstacles",
                     type: "GET",
-                    success: function(data) {
+                    success: function (data) {
                         const elements = document.getElementsByTagName('*');
                         for (let i = 0; i < elements.length; i++) {
                             const element = elements[i];
                             element.classList.remove("moving");
                         }
                         var moving_obstacles = data.moving_obstacles;
-                        moving_obstacles.forEach(function(moving_obstacles) {
+                        moving_obstacles.forEach(function (moving_obstacles) {
                             var x = moving_obstacles[0];
                             var y = moving_obstacles[1];
                             $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("moving");
-                        });                          
+                        });
                     },
-                    error: function() {
+                    error: function () {
                         console.error("Failed to collect obstacles.");
                     }
                 });
@@ -286,20 +304,20 @@
             setInterval(highlightMovingObstacles, 5000);
 
             var shapePoints = []; // Store the shape points
-    
+
             // Event listener for Shift key press/release
-            $(document).keydown(function(event) {
+            $(document).keydown(function (event) {
                 if (event.keyCode === 16) { // Shift key code
                     shiftKeyPressed = true;
                 }
             });
-    
-            $(document).keyup(function(event) {
+
+            $(document).keyup(function (event) {
                 if (event.keyCode === 16) { // Shift key code
                     shiftKeyPressed = false;
                 }
             });
-            
+
             var isMouseDown = false; // Track if the mouse button is pressed
             var lastSquare = null; // Track the last square the mouse crossed
 
@@ -311,12 +329,12 @@
                         var x = square[0];
                         var y = square[1];
                         $(".square[data-x='" + x + "'][data-y='" + y + "']").toggleClass("obstacle");
-                        $.post("/add_point", {"x": x, "y": y}, function(data) {})
-                        .done(function() {
-                            console.log("Point added successfully.");
-                        }).fail(function() {
-                            console.error("Failed to add point.");
-                        });
+                        $.post("/add_point", { "x": x, "y": y }, function (data) { })
+                            .done(function () {
+                                console.log("Point added successfully.");
+                            }).fail(function () {
+                                console.error("Failed to add point.");
+                            });
 
                         lastSquare = square;
                     }
@@ -324,26 +342,26 @@
             }
 
             // Event listener for mouse down event
-            $(".square").mousedown(function() {
+            $(".square").mousedown(function () {
                 isMouseDown = true;
                 var square = [$(this).data("x"), $(this).data("y")];
                 handlePainting(square);
             });
 
             // Event listener for mouse enter event (when the mouse moves over a square)
-            $(".square").mouseenter(function() {
+            $(".square").mouseenter(function () {
                 var square = [$(this).data("x"), $(this).data("y")];
                 handlePainting(square);
             });
 
             // Event listener for mouse up event
-            $(document).mouseup(function() {
+            $(document).mouseup(function () {
                 isMouseDown = false;
                 lastSquare = null;
             });
 
 
-            $(".square").click(function() {
+            $(".square").click(function () {
                 var square = $(this);
                 var x = $(this).data("x");
                 var y = $(this).data("y");
@@ -352,48 +370,48 @@
                     if (shapePoints.length < 4) {
                         shapePoints.push([x, y]);
                         $(this).addClass("clicked");
-                    } 
+                    }
                     if (shapePoints.length >= 4) {
                         $.ajax({
                             url: "/construct_shape",
                             type: "POST",
-                            data: {"shape_points": JSON.stringify(shapePoints)},
+                            data: { "shape_points": JSON.stringify(shapePoints) },
                             dataType: "json",
-                            success: function(data) {
+                            success: function (data) {
                                 $(".square").removeClass("clicked");
                                 shapePoints = []; // Clear the shape points
-                                data.forEach(function(obstacle) {
+                                data.forEach(function (obstacle) {
                                     var x = obstacle[0];
                                     var y = obstacle[1];
                                     $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
-                                });                            
+                                });
                             },
-                            error: function() {
+                            error: function () {
                                 console.error("Failed to construct shape.");
                             }
                         });
                     }
-                } 
+                }
             });
             // Download button click event handler
-            $("#downloadBtn").click(function() {
-                $.get("/get_obstacles", function(data) {
+            $("#downloadBtn").click(function () {
+                $.get("/get_obstacles", function (data) {
                     var obstacles = data.obstacles;
                     // Create a blob object from the obstacles array as JSON
-                    var jsonBlob = new Blob([JSON.stringify(obstacles)], {type: "application/json"});
-                    
+                    var jsonBlob = new Blob([JSON.stringify(obstacles)], { type: "application/json" });
+
                     // Create a download URL for the blob
                     var downloadUrl = URL.createObjectURL(jsonBlob);
-                    
+
                     // Create a temporary anchor element to trigger the download
                     var downloadLink = document.createElement("a");
                     downloadLink.href = downloadUrl;
                     downloadLink.download = "obstacles.json";
-                    
+
                     // Simulate a click event on the anchor element to start the download
                     document.body.appendChild(downloadLink);
                     downloadLink.click();
-                    
+
                     // Clean up
                     document.body.removeChild(downloadLink);
                     URL.revokeObjectURL(downloadUrl);
@@ -402,134 +420,135 @@
         });
     </script>
 </head>
+
 <body>
     <!--Main Navigation-->
-<header>
-    <!-- Sidebar -->
-    <!-- based on example from https://mdbootstrap.com/docs/standard/extended/side-navbar/-->
-    <nav id="sidebarMenu" class="collapse d-lg-block sidebar collapse">
-      <div class="container position-sticky">
-        <div class="list-group list-group-flush mx-3 mt-4">
-            <form id="uploadForm" class="mb-2"enctype="multipart/form-data">
-                <div class="input-group mb-2">
-                    <input type="file" id="jsonFileInput" name="jsonFile" accept=".json" class="form-control">
+    <header>
+        <!-- Sidebar -->
+        <!-- based on example from https://mdbootstrap.com/docs/standard/extended/side-navbar/-->
+        <nav id="sidebarMenu" class="collapse d-lg-block sidebar collapse">
+            <div class="container position-sticky">
+                <div class="list-group list-group-flush mx-3 mt-4">
+                    <form id="uploadForm" class="mb-2" enctype="multipart/form-data">
+                        <div class="input-group mb-2">
+                            <input type="file" id="jsonFileInput" name="jsonFile" accept=".json" class="form-control">
+                        </div>
+                        <button type="submit" id="uploadBtn" class="btn btn-primary mt-2">Load Config</button>
+                    </form>
+                    <button id="clearBtn" class="btn btn-danger mb-2 mt-2">Clear Obstacles</button>
+                    <button id="downloadBtn" class="btn btn-primary mb-2 mt-2">Download Obstacles</button>
+                    <b></b>
+                    <a href="/runny_nose" download>Download Path</a>
+
+                    </b>
+                    <textarea name="obs" id="obs" hidden>Obstacles:</textarea>
+
                 </div>
-                <button type="submit" id="uploadBtn" class="btn btn-primary mt-2">Load Config</button>
-            </form>                    
-            <button id="clearBtn" class="btn btn-danger mb-2 mt-2">Clear Obstacles</button>
-            <button id="downloadBtn" class="btn btn-primary mb-2 mt-2">Download Obstacles</button>
-            <b></b>
-            <a href="/runny_nose" download>Download Path</a>
 
-            </b>
-            <textarea name="obs" id="obs" hidden>Obstacles:</textarea>  
+            </div>
+            <div class="miniplayer">
+                <img src="{{ url_for('video_feed') }}">
+            </div>
+            <div id="sippmer" class="spinner-border miniplayer-spinner" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
 
-        </div>
-        
-      </div>
-      <div class="miniplayer">
-        <img src="{{ url_for('video_feed') }}">
-    </div> 
-      <div id = "sippmer" class="spinner-border miniplayer-spinner" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
- 
-    </nav>
-    
-    <!-- Navbar -->
-    <nav id="main-navbar" class="navbar navbar-expand-lg navbar-light top-bar fixed-top">
-      <!-- Container wrapper -->
-      <div class=" container">
-        <a class="navbar-brand" href="#">
-          <img src="static/Clementine.png" height="25" />
-        </a>
-        
-        <h1 style="text-align: left">CLEMENLIGHT          </h1>
-        <h5 style="color: #A7A9AC">Robot Detection and Pathfinding | v0.0.1</h5>
+        </nav>
 
-        <div>
-            <button id="swapButton1" class="btn btn-primary">Camera View</button>
-            <button id="swapButton2" class="btn btn-primary">Obstacle View</button>
-        </div>
-    </div>
-    </nav>
-  </header>
-  
-  <!--Main layout-->
-  <main style="margin-top: 58px;">
-    <div class="container pt-4"></div>
-  </main>
-  <!--Main layout-->
-  
+        <!-- Navbar -->
+        <nav id="main-navbar" class="navbar navbar-expand-lg navbar-light top-bar fixed-top">
+            <!-- Container wrapper -->
+            <div class=" container">
+                <a class="navbar-brand" href="#">
+                    <img src="static/Clementine.png" height="25" />
+                </a>
+
+                <h1 style="text-align: left">CLEMENLIGHT </h1>
+                <h5 style="color: #A7A9AC">Robot Detection and Pathfinding | v0.0.1</h5>
+
+                <div>
+                    <button id="swapButton1" class="btn btn-primary">Camera View</button>
+                    <button id="swapButton2" class="btn btn-primary">Obstacle View</button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!--Main layout-->
+    <main style="margin-top: 58px;">
+        <div class="container pt-4"></div>
+    </main>
+    <!--Main layout-->
+
 
     <div class="main-content">
         <div class="grid-container">
-            <img class="wide-image" id = "camera" src="{{ url_for('video_feed') }}">
-            <div id = "griddy">
+            <img class="wide-image" id="camera" src="{{ url_for('video_feed') }}">
+            <div id="griddy">
                 <div class="background-image"></div>
                 <div class="grid">
                     {% for y in range(80, 0 , -1) %}
-                        {% for x in range(0, 165, 1) %}
-                            <div class="square grid_item" data-x="{{ x }}" data-y="{{ y }}"></div>
-                        {% endfor %}
-                    {% endfor %}                        
+                    {% for x in range(0, 165, 1) %}
+                    <div class="square grid_item" data-x="{{ x }}" data-y="{{ y }}"></div>
+                    {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 </body>
 <script>
-        function highlightObstacles() {
-        $.get("/get_obstacles", function(data) {
+    function highlightObstacles() {
+        $.get("/get_obstacles", function (data) {
             var obstacles = data.obstacles;
             document.getElementById("obs").innerHTML = obstacles;
-            obstacles.forEach(function(obstacle) {
+            obstacles.forEach(function (obstacle) {
                 var x = obstacle[0];
                 var y = obstacle[1];
                 $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("obstacle");
             });
         });
     }
-    $(document).ready(function() {
-            var swapButton1 = document.getElementById("swapButton1");
-            var swapButton2 = document.getElementById("swapButton2");
-            var bigCamera = document.getElementById("camera")
-            var miniplayer = document.querySelector(".miniplayer");
-            var gridContainer = document.getElementById("griddy");
-            var spinner = document.getElementById("sippmer");
+    $(document).ready(function () {
+        var swapButton1 = document.getElementById("swapButton1");
+        var swapButton2 = document.getElementById("swapButton2");
+        var bigCamera = document.getElementById("camera")
+        var miniplayer = document.querySelector(".miniplayer");
+        var gridContainer = document.getElementById("griddy");
+        var spinner = document.getElementById("sippmer");
+        gridContainer.style.display = "block";
+        miniplayer.style.display = "block";
+        bigCamera.style.display = "none";
+        swapButton1.addEventListener("click", function () {
+            gridContainer.style.display = "none";
+            miniplayer.style.display = "none";
+            spinner.style.display = "none";
+            bigCamera.style.display = "block";
+        });
+        swapButton2.addEventListener("click", function () {
             gridContainer.style.display = "block";
             miniplayer.style.display = "block";
             bigCamera.style.display = "none";
-            swapButton1.addEventListener("click", function () {
-                gridContainer.style.display = "none";
-                miniplayer.style.display = "none";
-                spinner.style.display = "none";
-                bigCamera.style.display = "block";
-            });
-            swapButton2.addEventListener("click", function () {
-                gridContainer.style.display = "block";
-                miniplayer.style.display = "block";
-                bigCamera.style.display = "none";
-                spinner.style.display = "block";
+            spinner.style.display = "block";
 
-            });
+        });
         // Function to clear obstacles and reset highlighting
         function clearObstacles() {
-            $.post("/clear_obstacles", function() {
+            $.post("/clear_obstacles", function () {
                 $(".square").removeClass("obstacle");
                 console.log("Obstacles cleared successfully.");
-            }).fail(function() {
+            }).fail(function () {
                 console.error("Failed to clear obstacles.");
             });
         }
 
         // Event listener for Clear Obstacles button click
-        $("#clearBtn").click(function() {
+        $("#clearBtn").click(function () {
             clearObstacles();
         });
     });
     // Event listener for Upload JSON File button click
-    $("#uploadForm").submit(function(event) {
+    $("#uploadForm").submit(function (event) {
         event.preventDefault(); // Prevent form submission
         var $button = $(this);
         var $spinner = $button.find(".spinner-border");
@@ -549,7 +568,7 @@
             data: formData,
             processData: false,
             contentType: false,
-            success: function(data) {
+            success: function (data) {
                 console.log("JSON file uploaded successfully.");
                 highlightObstacles(); // Refresh the obstacles highlighting
                 // Enable the button
@@ -558,7 +577,7 @@
                 // Hide the spinner and show the text
                 $spinner.addClass("d-none");
             },
-            error: function() {
+            error: function () {
                 alert("Failed to upload JSON file and apply config. Please try again or upload a different config file if this issue persists.");
                 console.error("Failed to upload JSON file.");
                 // Enable the button
@@ -567,9 +586,10 @@
                 // Hide the spinner and show the text
                 $spinner.addClass("d-none");
             }
-            
+
         });
     });
 
 </script>
+
 </html>
