@@ -7,6 +7,13 @@
         /* Main background color */
         body {
             background-color: #343a40;
+            color: #FFFFFF;
+        }
+
+        .nav-container {
+            display: flex;
+            align-items: left !important; 
+            justify-content: left !important;
         }
 
         /* Container and grid styles */
@@ -14,7 +21,7 @@
             position: relative;
             width: calc(75vw); /* Adjust the width to account for the sidebar width and margins */
             height: calc(75vh); /* Adjust the height to account for the top and bottom margins */
-            margin: 20px 20px 20px 320px; /* Adjust the left margin to account for the sidebar width */
+            margin: 20px 20px 20px 350px; /* Adjust the left margin to account for the sidebar width */
             overflow: hidden;
             background-color: white;
         }
@@ -59,6 +66,11 @@
             background-color: orange;
         }
 
+        /* Color scheme */
+        .square.moving {
+            background-color: greenyellow;
+        }
+
         .background-image {
             position: absolute;
             top: 0;
@@ -72,6 +84,11 @@
             opacity: 0.7;
         }
 
+        .wide-image {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
 
         .logo {
             position: absolute;
@@ -85,17 +102,38 @@
             background-position: center;
      
         }
+        .miniplayer {
+            position: absolute; /* Position the miniplayer absolutely */
+            bottom: 0; /* Position it at the bottom */
+            left: 0; /* Adjust left position if necessary */
+            width: 100%; /* Make it span the entire width */
+            margin: 0; /* Remove margins */
+            padding: 0; /* Remove padding */
+        }
 
-        /* Sidebar styles 
-        .sidebar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 300px;
+        .miniplayer img {
+            width: 100%;
             height: 100%;
-            background-color: #212529;
-            padding: 20px;
-        }*/
+            object-fit: cover; /* Maintain aspect ratio and cover the container */
+            z-index: 10000; /* Set a higher z-index to make the image appear above the spinner */
+
+        }
+
+        .spinner-border {
+            bottom: 0;
+            position: absolute;
+            left: 50%;
+            top: 50%; /* Adjust top position to center the spinner */
+            z-index: -1000; /* Set a lower z-index to make the spinner appear behind the image */
+        }
+        
+        .miniplayer-spinner {
+            position: absolute; /* Position the miniplayer absolutely */
+            margin-top:85%; 
+            margin-left: 0px;
+            padding: 0; /* Remove padding */
+        }
+
 
         /* Button styles */
         .btn-primary {
@@ -156,17 +194,24 @@
             top: 0;
             bottom: 0;
             left: 0;
-            padding: 58px 0 0; /* Height of navbar */
+            padding: 58px 0 0;
             box-shadow: 0 2px 5px 0 rgb(0 0 0 / 5%), 0 2px 10px 0 rgb(0 0 0 / 5%);
-            width: 240px;
+            width: 330px;
+            background-color: #212529;
             z-index: 600;
         }
+
+
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-
-
+            function getFPS(){
+                $.get("/get_fps", function(data) {
+                    var fps = data.fps
+                    console.log(fps)
+                });
+            }
             // Event listener for Toggle Debugging button click
             $("#toggleObsBtn").click(function() {
                 $("#obs").toggleClass("hidden");
@@ -213,11 +258,32 @@
                 });
             }
 
-            // Call the highlightObstacles() function to highlight the initial obstacles
-            highlightObstacles();
+            // Function to retrieve the obstacles array and highlight the corresponding squares
+            function highlightMovingObstacles() {
+                if (shiftKeyPressed) return;
+                $.ajax({
+                    url: "/get_moving_obstacles",
+                    type: "GET",
+                    success: function(data) {
+                        const elements = document.getElementsByTagName('*');
+                        for (let i = 0; i < elements.length; i++) {
+                            const element = elements[i];
+                            element.classList.remove("moving");
+                        }
+                        var moving_obstacles = data.moving_obstacles;
+                        moving_obstacles.forEach(function(moving_obstacles) {
+                            var x = moving_obstacles[0];
+                            var y = moving_obstacles[1];
+                            $(".square[data-x='" + x + "'][data-y='" + y + "']").addClass("moving");
+                        });                          
+                    },
+                    error: function() {
+                        console.error("Failed to collect obstacles.");
+                    }
+                });
+            }
 
-            // Add an interval to periodically update the highlighted obstacles
-            //setInterval(highlightObstacles, 1000);
+            setInterval(highlightMovingObstacles, 5000);
 
             var shapePoints = []; // Store the shape points
     
@@ -335,15 +401,14 @@
             });
         });
     </script>
-    
 </head>
 <body>
     <!--Main Navigation-->
 <header>
     <!-- Sidebar -->
     <!-- based on example from https://mdbootstrap.com/docs/standard/extended/side-navbar/-->
-    <nav id="sidebarMenu" class="collapse d-lg-block sidebar collapse bg-white">
-      <div class="position-sticky">
+    <nav id="sidebarMenu" class="collapse d-lg-block sidebar collapse">
+      <div class="container position-sticky">
         <div class="list-group list-group-flush mx-3 mt-4">
             <form id="uploadForm" class="mb-2"enctype="multipart/form-data">
                 <div class="input-group mb-2">
@@ -351,35 +416,42 @@
                 </div>
                 <button type="submit" id="uploadBtn" class="btn btn-primary mt-2">Load Config</button>
             </form>                    
-            <button id="clearBtn" class="btn btn-danger mt-2">Clear Obstacles</button>
+            <button id="clearBtn" class="btn btn-danger mb-2 mt-2">Clear Obstacles</button>
             <button id="downloadBtn" class="btn btn-primary mb-2 mt-2">Download Obstacles</button>
             <b></b>
             <a href="/runny_nose" download>Download Path</a>
 
             </b>
-            <label for="obs">Debugging</label>
             <textarea name="obs" id="obs" hidden>Obstacles:</textarea>  
+
         </div>
+        
       </div>
+      <div class="miniplayer">
+        <img src="{{ url_for('video_feed') }}">
+    </div> 
+      <div id = "sippmer" class="spinner-border miniplayer-spinner" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+ 
     </nav>
-    <!-- Sidebar -->
-  
+    
     <!-- Navbar -->
-    <nav id="main-navbar" class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
+    <nav id="main-navbar" class="navbar navbar-expand-lg navbar-light top-bar fixed-top">
       <!-- Container wrapper -->
-      <div class="container-fluid">
-        <!-- Toggle button -->
-        <button class="navbar-toggler" type="button" data-mdb-toggle="collapse" data-mdb-target="#sidebarMenu"
-          aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-          <i class="fas fa-bars"></i>
-        </button>
-  
-        <!-- Brand -->
+      <div class=" container">
         <a class="navbar-brand" href="#">
-          <img src="https://mdbcdn.b-cdn.net/img/logo/mdb-transaprent-noshadows.webp" height="25" alt="MDB Logo"
-            loading="lazy" />
+          <img src="static/Clementine.png" height="25" />
         </a>
-      </div>
+        
+        <h1 style="text-align: left">CLEMENLIGHT          </h1>
+        <h5 style="color: #A7A9AC">Robot Detection and Pathfinding | v0.0.1</h5>
+
+        <div>
+            <button id="swapButton1" class="btn btn-primary">Camera View</button>
+            <button id="swapButton2" class="btn btn-primary">Obstacle View</button>
+        </div>
+    </div>
     </nav>
   </header>
   
@@ -388,25 +460,26 @@
     <div class="container pt-4"></div>
   </main>
   <!--Main layout-->
-            <div class="col-md-9">
-                <div class="main-content">
-                    <div class="grid-container">
-                        <div class="background-image"></div>
-                        <div class="grid">
-                            {% for y in range(80, 0 , -1) %}
-                                {% for x in range(0, 165, 1) %}
-                                    <div class="square grid_item" data-x="{{ x }}" data-y="{{ y }}"></div>
-                                {% endfor %}
-                            {% endfor %}                        
-                        </div>
-                    </div>
+  
+
+    <div class="main-content">
+        <div class="grid-container">
+            <img class="wide-image" id = "camera" src="{{ url_for('video_feed') }}">
+            <div id = "griddy">
+                <div class="background-image"></div>
+                <div class="grid">
+                    {% for y in range(80, 0 , -1) %}
+                        {% for x in range(0, 165, 1) %}
+                            <div class="square grid_item" data-x="{{ x }}" data-y="{{ y }}"></div>
+                        {% endfor %}
+                    {% endfor %}                        
                 </div>
             </div>
         </div>
     </div>
 </body>
 <script>
-    function highlightObstacles() {
+        function highlightObstacles() {
         $.get("/get_obstacles", function(data) {
             var obstacles = data.obstacles;
             document.getElementById("obs").innerHTML = obstacles;
@@ -418,6 +491,28 @@
         });
     }
     $(document).ready(function() {
+            var swapButton1 = document.getElementById("swapButton1");
+            var swapButton2 = document.getElementById("swapButton2");
+            var bigCamera = document.getElementById("camera")
+            var miniplayer = document.querySelector(".miniplayer");
+            var gridContainer = document.getElementById("griddy");
+            var spinner = document.getElementById("sippmer");
+            gridContainer.style.display = "block";
+            miniplayer.style.display = "block";
+            bigCamera.style.display = "none";
+            swapButton1.addEventListener("click", function () {
+                gridContainer.style.display = "none";
+                miniplayer.style.display = "none";
+                spinner.style.display = "none";
+                bigCamera.style.display = "block";
+            });
+            swapButton2.addEventListener("click", function () {
+                gridContainer.style.display = "block";
+                miniplayer.style.display = "block";
+                bigCamera.style.display = "none";
+                spinner.style.display = "block";
+
+            });
         // Function to clear obstacles and reset highlighting
         function clearObstacles() {
             $.post("/clear_obstacles", function() {
