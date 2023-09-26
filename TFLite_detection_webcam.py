@@ -66,28 +66,30 @@ MODEL_NAME = "bumper_detect_m3.tflite"
 GRAPH_NAME = "bumper_detect_m3.tflite"
 LABELMAP_NAME = "labelmap.txt"
 min_conf_threshold = float(0.45)
-resW, resH = '852x480'.split('x')
+resW, resH = "852x480".split("x")
 imW, imH = int(resW), int(resH)
 use_TPU = False
 
 # Import TensorFlow libraries
 # If tflite_runtime is installed, import interpreter from tflite_runtime, else import from regular tensorflow
 # If using Coral Edge TPU, import the load_delegate library
-pkg = importlib.util.find_spec('tflite_runtime')
+pkg = importlib.util.find_spec("tflite_runtime")
 if pkg:
     from tflite_runtime.interpreter import Interpreter
+
     if use_TPU:
         from tflite_runtime.interpreter import load_delegate
 else:
     import tensorflow as tf
+
     if use_TPU:
         from tensorflow.lite.python.interpreter import load_delegate
 
 # If using Edge TPU, assign filename for Edge TPU model
 if use_TPU:
     # If user has specified the name of the .tflite file, use that name, otherwise use default 'edgetpu.tflite'
-    if (GRAPH_NAME == 'detect.tflite'):
-        GRAPH_NAME = 'edgetpu.tflite'
+    if GRAPH_NAME == "detect.tflite":
+        GRAPH_NAME = "edgetpu.tflite"
 
 # Get path to current working directory
 
@@ -95,17 +97,21 @@ if use_TPU:
 PATH_TO_CKPT = "C:/Users/Clementine/Documents/Robotics Programming/A_star_idea/bumper_detect_m3.tflite"
 
 # Path to label map file
-PATH_TO_LABELS = "C:/Users/Clementine/Documents/Robotics Programming/A_star_idea/labelmap.txt"
+PATH_TO_LABELS = (
+    "C:/Users/Clementine/Documents/Robotics Programming/A_star_idea/labelmap.txt"
+)
 
 # Load the label map
-with open(PATH_TO_LABELS, 'r') as f:
+with open(PATH_TO_LABELS, "r") as f:
     labels = [line.strip() for line in f.readlines()]
 
 # Load the Tensorflow Lite model.
 # If using Edge TPU, use special load_delegate argument
 if use_TPU:
-    interpreter = tf.lite.Interpreter(model_path=PATH_TO_CKPT,
-                                      experimental_delegates=[load_delegate('libedgetpu.so.1.0')])
+    interpreter = tf.lite.Interpreter(
+        model_path=PATH_TO_CKPT,
+        experimental_delegates=[load_delegate("libedgetpu.so.1.0")],
+    )
     print(PATH_TO_CKPT)
 else:
     interpreter = tf.lite.Interpreter(model_path=PATH_TO_CKPT)
@@ -115,19 +121,19 @@ interpreter.allocate_tensors()
 # Get model details
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
-height = input_details[0]['shape'][1]
-width = input_details[0]['shape'][2]
+height = input_details[0]["shape"][1]
+width = input_details[0]["shape"][2]
 
-floating_model = (input_details[0]['dtype'] == np.float32)
+floating_model = input_details[0]["dtype"] == np.float32
 
 input_mean = 127.5
 input_std = 127.5
 
 # Check output layer name to determine if this model was created with TF2 or TF1,
 # because outputs are ordered differently for TF2 and TF1 models
-outname = output_details[0]['name']
+outname = output_details[0]["name"]
 
-if ('StatefulPartitionedCall' in outname):  # This is a TF2 model
+if "StatefulPartitionedCall" in outname:  # This is a TF2 model
     boxes_idx, classes_idx, scores_idx = 1, 3, 0
 else:  # This is a TF1 model
     boxes_idx, classes_idx, scores_idx = 0, 1, 2
@@ -165,23 +171,19 @@ def run_model(frame):
         input_data = (np.float32(input_data) - input_mean) / input_std
 
     # Perform the actual detection by running the model with the image as input
-    interpreter.set_tensor(input_details[0]['index'], input_data)
+    interpreter.set_tensor(input_details[0]["index"], input_data)
     interpreter.invoke()
 
     # Retrieve detection results
-    boxes = interpreter.get_tensor(output_details[boxes_idx]['index'])[
-        0]  # Bounding box coordinates of detected objects
-    classes = interpreter.get_tensor(output_details[classes_idx]['index'])[
-        0]  # Class index of detected objects
-    scores = interpreter.get_tensor(output_details[scores_idx]['index'])[
-        0]  # Confidence of detected objects
+    boxes = interpreter.get_tensor(output_details[boxes_idx]["index"])[0]
+    classes = interpreter.get_tensor(output_details[classes_idx]["index"])[0]
+    scores = interpreter.get_tensor(output_details[scores_idx]["index"])[0]
 
     box_objs = []
 
     # Loop over all detections and draw detection box if confidence is above minimum threshold
     for i in range(len(scores)):
-        if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
-
+        if (scores[i] > min_conf_threshold) and (scores[i] <= 1.0):
             # Get bounding box coordinates and draw box
             # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
             ymin = int(max(1, (boxes[i][0] * imH)))
@@ -194,33 +196,56 @@ def run_model(frame):
             # Draw label
             # Look up object name from "labels" array using class index
             object_name = labels[int(classes[i])]
-            label = '%s: %d%%' % (object_name, int(
-                scores[i]*100))  # Example: 'person: 72%'
+            label = "%s: %d%%" % (
+                object_name,
+                int(scores[i] * 100),
+            )  # Example: 'person: 72%'
             labelSize, baseLine = cv2.getTextSize(
-                label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)  # Get font size
+                label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2
+            )  # Get font size
             # Make sure not to draw label too close to top of window
             label_ymin = max(ymin, labelSize[1] + 10)
             # Draw white box to put label text in
-            cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (
-                xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED)
-            cv2.putText(frame, label, (xmin, label_ymin-7),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)  # Draw label text
+            cv2.rectangle(
+                frame,
+                (xmin, label_ymin - labelSize[1] - 10),
+                (xmin + labelSize[0], label_ymin + baseLine - 10),
+                (255, 255, 255),
+                cv2.FILLED,
+            )
+            cv2.putText(
+                frame,
+                label,
+                (xmin, label_ymin - 7),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 0, 0),
+                2,
+            )  # Draw label text
 
             box_objs += [boxObj([xmin, ymin, xmax, ymax], object_name)]
 
     # Draw framerate in corner of frame
-    cv2.putText(frame, 'FPS: {0:.2f}'.format(frame_rate_calc), (30, 50),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2, cv2.LINE_AA)
+    cv2.putText(
+        frame,
+        "FPS: {0:.2f}".format(frame_rate_calc),
+        (30, 50),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (255, 255, 0),
+        2,
+        cv2.LINE_AA,
+    )
 
     frame_to_return = frame
 
     # Calculate framerate
     t2 = cv2.getTickCount()
-    time1 = (t2-t1)/freq
-    frame_rate_calc = 1/time1
+    time1 = (t2 - t1) / freq
+    frame_rate_calc = 1 / time1
 
     # Press 'q' to quit
-    if cv2.waitKey(1) == ord('q'):
+    if cv2.waitKey(1) == ord("q"):
         cv2.destroyAllWindows()
     return frame_to_return, box_objs
 

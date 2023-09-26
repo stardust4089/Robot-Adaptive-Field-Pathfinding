@@ -6,7 +6,7 @@ class Shape:
     # POINT INPUT MUST BE IN COUNTER CLOCKWISE ORDER
     def __init__(self, p1, p2, p3, p4):
         self.points = [p1, p2, p3, p4]
-
+ 
 
 # Define your grid dimensions, start point, and goal point
 # decimeters    

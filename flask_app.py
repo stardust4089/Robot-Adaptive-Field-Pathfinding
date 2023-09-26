@@ -1,5 +1,7 @@
+import base64
 import json
 import math
+import threading
 from flask import Flask, render_template, request, jsonify, send_file
 from flask import Response
 import cv2
@@ -9,6 +11,7 @@ from queue import PriorityQueue
 import pandas as pd
 import TFLite_detection_webcam
 import math
+from networktables import NetworkTables
 
 
 class Node:
@@ -53,6 +56,8 @@ MOVE_DIAGONAL_COST = math.sqrt(2)
 
 OUTPUT_FILE = "path_output.path"
 
+NetworkTables.initialize(server='127.0.0.1')
+
 
 @app.route('/')
 def index():
@@ -69,7 +74,6 @@ def upload_json():
             json_data = json.load(json_file)
 
             obstacles.extend(json_data)
-            print(obstacles)
             return jsonify({'message': 'JSON file uploaded successfully.'}), 200
         except json.JSONDecodeError:
             return jsonify({'message': 'Invalid JSON file.'}), 400
@@ -155,7 +159,6 @@ def construct_shape():
         y = clamp(y, 0, grid_height - 1)
         obstacles.append((x, y))
     obstacles = pd.Series(obstacles).drop_duplicates().tolist()
-    print("New Obstacles:", points)
     new_points = points
     return json.dumps(new_points)
 
@@ -215,10 +218,12 @@ def bresenham_line(x0, y0, x1, y1):
 
 
 def config():
-    global grid
+    global grid, table
     for obstacle in obstacles:
         print(obstacle[0], " , ", obstacle[1])
         grid[obstacle[0]][obstacle[1]].obstacle = True
+    NetworkTables.initialize(server='localhost')
+    table = NetworkTables.getTable('TestTable')
 
 
 def heuristic(node_a, node_b):
@@ -306,8 +311,9 @@ def generate_path(end_node):
 
 def astar():
     open_set = PriorityQueue()
-
-    start_node = grid[START[0]][START[1]]
+    data = table.getNumber('Timestamp', 0)  # 0.0 is the default value
+    print(data)
+    start_node = grid[START[data]][START[1]]
     start_node.g = 0
     start_node.h = heuristic(start_node, grid[GOAL[0]][GOAL[1]])
     start_node.f = start_node.g + start_node.h
@@ -355,7 +361,6 @@ def astar():
 @app.route('/runny_nose', methods=['POST', 'GET'])
 def run():
     config()
-
     path = astar()
 
     output_data = {
@@ -372,9 +377,27 @@ def run():
         json.dump(output_data, file, indent=2)
 
     file_path = 'path_output.path'
-
+    send_file_nwt()
     return send_file(file_path, as_attachment=True)
 
+def pathfinding_loop():
+    config()
+    while True:
+        path = astar()
+
+        output_data = {
+            "waypoints": [],
+            "markers": []
+        }
+
+        if path is not None:
+            output_data["waypoints"] = generate_path(path)
+
+        with open("path_output.path", 'w') as file:
+            json.dump(output_data, file, indent=2)
+
+        file_path = 'path_output.path'
+        send_file_nwt()
 
 def clamp(num, min_value, max_value):
     return max(min(num, max_value), min_value)
@@ -390,7 +413,6 @@ def gen_frames():
             frame, coords = TFLite_detection_webcam.run_model(frame)
             for obs in moving_obstacles:
                 grid[obs[0]][obs[1]].obstacle = False
-            print(moving_obstacles)
             moving_obstacles = []
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
@@ -407,9 +429,8 @@ def gen_frames():
                 y_2 = int(y_2)
                 moving_obstacles += construct_shape(
                     (x_1, y_1), (x_2, y_2), (x_1, y_2), (x_2, y_1))
-                for obs in moving_obstacles:
-                    grid[obs[0]][obs[1]].obstacle = True
-
+            for obs in moving_obstacles:
+                grid[obs[0]][obs[1]].obstacle = True
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
@@ -500,8 +521,24 @@ def set_fov(fov_h, fov_v):
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+def send_file_nwt():
+    # Read the file and get its contents
+    with open('path_output.path', 'rb') as file:
+        file_data = file.read()
+    encoded_data = base64.b64encode(file_data).decode('utf-8')
+    # Get the NetworkTables table for file transmission
+    table = NetworkTables.getTable('fileTable')
+
+    # Publish the file data to the table
+    table.putString('fileData', encoded_data)
 
 if __name__ == '__main__':
     square_size = min(math.floor(800 / grid_height),
                       math.floor(1650 / grid_width))
+    
+    pathfinding_thread = threading.Thread(target=pathfinding_loop)
+    pathfinding_thread.daemon = True
+    # Start the thread
+    pathfinding_thread.start()
+    
     app.run()
